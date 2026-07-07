@@ -1,0 +1,73 @@
+# Q49. Security Vulnerability Analysis
+
+## Security Vulnerabilities
+
+| Vulnerability | Risk | Recommended Solution |
+|--------------|------|----------------------|
+| **Hardcoded Wi-Fi SSID and Password** | Credentials can be extracted from the source code or firmware, allowing attackers to gain unauthorized access to the network. | Store credentials in a separate `config.h` file excluded using `.gitignore`, or use secure credential storage. |
+| **Using HTTP Instead of HTTPS** | Data is transmitted without encryption, making it vulnerable to eavesdropping and man-in-the-middle (MITM) attacks. | Use HTTPS with TLS/SSL encryption and validate server certificates. |
+| **Public MQTT Broker Without Authentication** | Anyone can publish or subscribe to topics, allowing unauthorized access, spoofing, or data tampering. | Use an authenticated MQTT broker with username/password and TLS encryption. |
+| **No Validation of Incoming Commands** | Attackers can send malicious or unexpected commands, potentially causing unsafe device behavior. | Validate all incoming commands and allow only predefined, authorized commands. |
+| **No Access Control or Authentication** | The device cannot verify the identity of clients, increasing the risk of unauthorized control. | Implement authentication mechanisms such as API keys, tokens, or client certificates. |
+
+---
+
+# Corrected Code Examples
+
+## 1. Secure Wi-Fi Credentials (`config.h`)
+
+**Before**
+
+```cpp
+const char* ssid = "PublicWiFi";
+const char* password = "12345678";
+```
+
+**After**
+
+```cpp
+#include "config.h"
+
+WiFi.begin(WIFI_SSID, WIFI_PASSWORD);
+```
+
+**config.h**
+
+```cpp
+#ifndef CONFIG_H
+#define CONFIG_H
+
+const char* WIFI_SSID = "YOUR_WIFI_NAME";
+const char* WIFI_PASSWORD = "YOUR_WIFI_PASSWORD";
+
+#endif
+```
+
+---
+
+## 2. Use HTTPS Instead of HTTP
+
+**Before**
+
+```cpp
+HTTPClient http;
+http.begin("http://example.com/api");
+```
+
+**After**
+
+```cpp
+WiFiClientSecure client;
+client.setInsecure();   // For testing only
+
+HTTPClient https;
+https.begin(client, "https://example.com/api");
+```
+
+> **Note:** In production, replace `setInsecure()` with proper certificate validation or certificate pinning.
+
+---
+
+## Conclusion
+
+Securing IoT devices requires protecting sensitive credentials, encrypting network communication, authenticating users and devices, and validating all incoming data. Following these security best practices significantly reduces the risk of unauthorized access, data theft, and malicious attacks.
