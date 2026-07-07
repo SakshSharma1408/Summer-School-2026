@@ -1,0 +1,24 @@
+# Q36. MQTT vs HTTP Comparison
+
+| Feature | MQTT | HTTP |
+|---------|------|------|
+| **Architecture Pattern** | Publish/Subscribe using a broker | Client–Server (Request–Response) |
+| **Data Transfer Model** | Devices publish messages to topics; subscribers receive them | Client sends a request, server returns a response |
+| **Power Consumption** | Low power consumption due to lightweight communication | Higher power consumption because every request establishes communication overhead |
+| **Latency** | Low latency, suitable for real-time communication | Higher latency due to the request-response cycle |
+| **IoT Use Case Suitability** | Excellent for large-scale IoT networks, sensor monitoring, and real-time data | Better for web applications, REST APIs, configuration, and occasional data requests |
+| **Security Considerations** | Supports TLS/SSL encryption, authentication, and broker-based access control | Supports HTTPS (TLS/SSL), authentication, and standard web security mechanisms |
+
+## Which protocol would you choose for a 1000-node smart agriculture deployment?
+
+I would choose **MQTT** for a 1000-node smart agriculture deployment.
+
+### Reason
+
+- MQTT is lightweight and consumes less bandwidth and power, making it ideal for battery-powered sensor nodes.
+- It provides low-latency communication, allowing real-time monitoring of environmental parameters such as soil moisture, temperature, and humidity.
+- The publish/subscribe model enables a single broker to efficiently distribute data to multiple subscribers without each sensor communicating directly with every application.
+- MQTT scales well to thousands of connected devices while reducing network traffic and server load.
+- Secure communication can be achieved using TLS/SSL encryption and authenticated broker connections.
+
+**Therefore, MQTT is the preferred protocol for large-scale IoT deployments like smart agriculture because it is more scalable, energy-efficient, and optimized for continuous sensor communication.**
