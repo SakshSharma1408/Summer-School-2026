@@ -1,116 +1,157 @@
------- GREENHOUSE DATA ------
-Temperature: -35.20 °C
-Humidity: 12.50 %
-Light Avg: 100
-Heater: 1
-Fan: 0
-Light: 1
------------------------------
+#include <WiFi.h>
+#include <HTTPClient.h>
 
------- GREENHOUSE DATA ------
-Temperature: -35.20 °C
-Humidity: 12.50 %
-Light Avg: 1001
-Heater: 1
-Fan: 0
-Light: 1
------------------------------
+const char* ssid = "Wokwi-GUEST";
+const char* password = "";
 
------- GREENHOUSE DATA ------
-Temperature: 40.50 °C
-Humidity: 12.50 %
-Light Avg: 1001
-Heater: 0
-Fan: 1
-Light: 1
------------------------------
+// ---------------- THINGSPEAK ----------------
+String apiKey = "APIKEY";
+const char* server = "http://api.thingspeak.com/update";
 
------- GREENHOUSE DATA ------
-Temperature: 40.50 °C
-Humidity: 81.50 %
-Light Avg: 1001
-Heater: 0
-Fan: 1
-Light: 1
------------------------------
+#define TRIG_PIN 5
+#define ECHO_PIN 18
+#define BUZZER 4
 
------- GREENHOUSE DATA ------
-Temperature: 40.50 °C
-Humidity: 81.50 %
-Light Avg: 3917
-Heater: 0
-Fan: 1
-Light: 0
------------------------------
+#define LED_GREEN 12
+#define LED_YELLOW 13
+#define LED_RED 14
 
------- GREENHOUSE DATA ------
-Temperature: 40.50 °C
-Humidity: 81.50 %
-Light Avg: 57
-Heater: 0
-Fan: 1
-Light: 1
------------------------------
+float readings[5];
+int indexNum = 0;
 
------- GREENHOUSE DATA ------
-Temperature: 40.50 °C
-Humidity: 35.50 %
-Light Avg: 57
-Heater: 0
-Fan: 1
-Light: 1
------------------------------
+void setup_wifi() {
+  Serial.print("Connecting WiFi...");
+  WiFi.begin(ssid, password);
 
------- GREENHOUSE DATA ------
-Temperature: 68.10 °C
-Humidity: 35.50 %
-Light Avg: 57
-Heater: 0
-Fan: 1
-Light: 1
------------------------------
+  while (WiFi.status() != WL_CONNECTED) {
+    delay(500);
+    Serial.print(".");
+  }
 
------- GREENHOUSE DATA ------
-Temperature: 68.10 °C
-Humidity: 35.50 %
-Light Avg: 57
-Heater: 0
-Fan: 1
-Light: 1
------------------------------
+  Serial.println("\nWiFi Connected!");
+}
 
------- GREENHOUSE DATA ------
-Temperature: -33.10 °C
-Humidity: 81.00 %
-Light Avg: 57
-Heater: 1
-Fan: 1
-Light: 1
------------------------------
+float getDistance() {
+  digitalWrite(TRIG_PIN, LOW);
+  delayMicroseconds(2);
 
------- GREENHOUSE DATA ------
-Temperature: -33.10 °C
-Humidity: 81.00 %
-Light Avg: 57
-Heater: 1
-Fan: 1
-Light: 1
------------------------------
+  digitalWrite(TRIG_PIN, HIGH);
+  delayMicroseconds(10);
+  digitalWrite(TRIG_PIN, LOW);
 
------- GREENHOUSE DATA ------
-Temperature: 75.90 °C
-Humidity: 81.00 %
-Light Avg: 57
-Heater: 0
-Fan: 1
-Light: 1
------------------------------
+  long duration = pulseIn(ECHO_PIN, HIGH);
+  float distance = duration * 0.034 / 2;
 
------- GREENHOUSE DATA ------
-Temperature: 75.90 °C
-Humidity: 81.00 %
-Light Avg: 57
-Heater: 0
-Fan: 1
-Light: 1
------------------------------
+  return distance;
+}
+
+// ---------------- AVERAGE ----------------
+float getAverage(float val) {
+  readings[indexNum] = val;
+  indexNum = (indexNum + 1) % 5;
+
+  float sum = 0;
+  for (int i = 0; i < 5; i++) {
+    sum += readings[i];
+  }
+  return sum / 5;
+}
+
+void sendToThingSpeak(float distance, int levelValue) {
+
+  if (WiFi.status() == WL_CONNECTED) {
+
+    HTTPClient http;
+
+    String url = String(server) + "?api_key=" + apiKey +
+                 "&field1=" + String(distance) +
+                 "&field2=" + String(levelValue);
+
+    Serial.println("Sending to TS:");
+    Serial.println(url);   // DEBUG
+
+    http.begin(url);
+    int httpCode = http.GET();
+
+    Serial.print("HTTP Response: ");
+    Serial.println(httpCode);
+
+    http.end();
+  }
+}
+
+void setup() {
+  Serial.begin(115200);
+
+  pinMode(TRIG_PIN, OUTPUT);
+  pinMode(ECHO_PIN, INPUT);
+  pinMode(BUZZER, OUTPUT);
+
+  pinMode(LED_GREEN, OUTPUT);
+  pinMode(LED_YELLOW, OUTPUT);
+  pinMode(LED_RED, OUTPUT);
+
+  for (int i = 0; i < 5; i++) readings[i] = 30;
+
+  setup_wifi();
+
+  // Buzzer test
+  tone(BUZZER, 1000);
+  delay(300);
+  noTone(BUZZER);
+}
+
+void loop() {
+
+  float rawDistance = getDistance();
+  float avgDistance = getAverage(rawDistance);
+
+  Serial.print("Raw: ");
+  Serial.print(rawDistance);
+  Serial.print(" cm | Avg: ");
+  Serial.println(avgDistance);
+
+  String level;
+  int levelValue;
+
+  digitalWrite(LED_GREEN, LOW);
+  digitalWrite(LED_YELLOW, LOW);
+  digitalWrite(LED_RED, LOW);
+  noTone(BUZZER);
+
+  // 🔴 CRITICAL (<15 cm) → instant
+
+if (rawDistance < 15) {
+  level = "CRITICAL";
+  levelValue = 2;
+
+  digitalWrite(LED_RED, HIGH);
+  tone(BUZZER, 3000);
+}
+
+else if (rawDistance >= 15 && rawDistance <= 30) {
+  level = "WARNING";
+  levelValue = 1;
+
+  digitalWrite(LED_YELLOW, HIGH);
+
+  tone(BUZZER, 2000);
+  delay(200);
+  noTone(BUZZER);
+}
+
+else {
+  level = "NORMAL";
+  levelValue = 0;
+
+  digitalWrite(LED_GREEN, HIGH);
+}
+
+  Serial.println("Level: " + level);
+
+  // 📡 Send to ThingSpeak
+  sendToThingSpeak(avgDistance, levelValue);
+
+  // ⚠️ IMPORTANT: ThingSpeak limit
+  delay(15000);
+}
